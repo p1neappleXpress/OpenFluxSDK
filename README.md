@@ -1,5 +1,7 @@
 # OpenFlux Transport SDK
 
+*[Читать на русском](README.ru.md)*
+
 Everything you need to write, sign, package, and test a new **OpenFlux
 transport** — without touching the OpenFlux core, and without rebuilding
 the app.
@@ -40,34 +42,44 @@ full room to implement whatever a real transport needs.
 ## Quickstart
 
 ```bash
-# Templates and examples live in this repo:
 git clone https://github.com/p1neappleXpress/OpenFluxSDK.git
+cd OpenFluxSDK
 
-# The actual build/sign/test tools live in the main OpenFlux repo (this SDK
-# doesn't duplicate them — one source of truth, always in sync with the
-# runtime that will load your script):
-git clone --branch feature/scripted-transports https://github.com/p1neappleXpress/OpenFlux.git
-
-cp OpenFluxSDK/templates/template.js OpenFlux/transport/script/js/my-transport.js
+cp templates/template.js my-transport.js
 # ... write your transport ...
 
+# Option A: use the prebuilt binaries in bin/ (pick your platform's dir)
+bin/darwin-arm64/scriptsign genkey dev.key dev.pub
+bin/darwin-arm64/scriptsign sign dev.key my-transport.js
+bin/darwin-arm64/scripttest \
+  -script my-transport.js -pubkey "$(cat dev.pub)" \
+  -url "https://example.com/whatever" -duration 30s -send hello
+
+# Option B: build from source against the main repo instead (always
+# reflects the latest host API — see bin/README.md for the tradeoff)
+git clone --branch feature/scripted-transports https://github.com/p1neappleXpress/OpenFlux.git
 cd OpenFlux
 go run ./transport/script/cmd/scriptsign genkey dev.key dev.pub
-go run ./transport/script/cmd/scriptsign sign dev.key transport/script/js/my-transport.js
+go run ./transport/script/cmd/scriptsign sign dev.key ../OpenFluxSDK/my-transport.js
 go run ./transport/script/cmd/scripttest \
-  -script transport/script/js/my-transport.js \
-  -pubkey "$(cat dev.pub)" \
+  -script ../OpenFluxSDK/my-transport.js -pubkey "$(cat dev.pub)" \
   -url "https://example.com/whatever" -duration 30s -send hello
 ```
 
+Try `examples/echo-transport.js` first if you just want to see the contract
+run end to end before porting a real protocol.
+
 ## What's in this repo
 
-- `docs/` — the guides above.
+- `docs/` — the guides above (also in [Russian](docs/ru/01-overview.md)).
 - `templates/template.js` — the canonical starting point (kept in sync with
   the host API — if you're reading an older clone, diff it against
   `transport/script/js/template.js` in the main repo).
 - `examples/echo-transport.js` — the smallest possible working transport,
   for understanding the contract without any real-world protocol noise.
+- `bin/` — prebuilt `scriptsign`/`scripttest`/`scriptbundle` binaries for
+  macOS/Linux/Windows, so you don't need to clone the main repo just to sign
+  or test a script. See [bin/README.md](bin/README.md).
 
 ## Status
 
