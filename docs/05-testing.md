@@ -1,5 +1,7 @@
 # Testing
 
+*[Читать на русском](ru/05-testing.md)*
+
 `scripttest` (`transport/script/cmd/scripttest` in the main repo) is the
 tool every one of the shipped transports was actually verified with — a
 live-network manual smoke-test harness, not a mock. There's no substitute

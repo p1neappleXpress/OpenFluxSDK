@@ -1,12 +1,15 @@
 # Overview
 
+*[Читать на русском](ru/01-overview.md)*
+
 ## Why this exists
 
-OpenFlux is a TCP tunnel with pluggable transports — each transport
-disguises the tunnel's traffic as some other, unremarkable protocol
-(a collaborative doc editor's cursor sync, a whiteboard app, a voice call's
-signaling channel, ...). Every transport used to be Go code compiled into
-the core. Adding one meant a core rebuild, and on Android, a new APK.
+OpenFlux is a TCP tunnel with pluggable transports — each transport carries
+the tunnel's traffic over a different real-world protocol (a collaborative
+doc editor's cursor sync, a whiteboard app, a voice call's signaling
+channel, ...), so the tunnel isn't tied to any single wire format. Every
+transport used to be Go code compiled into the core. Adding one meant a core
+rebuild, and on Android, a new APK.
 
 That's the whole motivation: **ship new transports as data, not as a
 recompile.** A transport is now a signed `.js` file (or a signed `.flux`
@@ -46,8 +49,8 @@ no app update.
 - **The host API is deliberately unrestricted.** No allowlist of hosts, no
   capability flags, no "this transport can't open raw sockets." Dial
   anywhere, fetch anything, open a real WebRTC PeerConnection if you need
-  one. The freedom is the point — a transport author needs to be able to
-  faithfully impersonate a real protocol, including whatever that protocol
+  one. The freedom is the point — a transport author needs full flexibility
+  to faithfully implement a real protocol, including whatever that protocol
   actually does under the hood.
 - **The signature is the entire security boundary.** Every `.js` file (or
   `.flux` package) is checked against an ed25519 public key the exit/node

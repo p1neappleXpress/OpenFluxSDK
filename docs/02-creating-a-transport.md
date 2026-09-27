@@ -1,11 +1,13 @@
 # Creating a transport
 
+*[Читать на русском](ru/02-creating-a-transport.md)*
+
 This walks through writing a real (if toy) transport end to end: auth over
 HTTP, a WebSocket for the actual channel, reconnect on drop, and testing it
 against a real target. It assumes you've read
 [01-overview.md](01-overview.md).
 
-## 0. Decide what you're impersonating
+## 0. Decide which protocol you're implementing
 
 Before writing anything: what does the *real* client of this protocol
 actually do on the wire? Open the real site/app, watch its network traffic
@@ -16,7 +18,7 @@ actually do on the wire? Open the real site/app, watch its network traffic
 - What's the actual message framing once connected? Raw WebSocket frames?
   Socket.IO-style `42["event",{...}]`? A custom binary format?
 - Where does *your* payload actually fit? Almost every one of the shipped
-  transports smuggles data inside a field the real protocol already has
+  transports carries its data inside a field the real protocol already has
   room for (a cursor-position string, an "ICE candidate," a chat message) -
   find that field for your target protocol.
 - What's the realistic packet rate and size? This decides whether you need

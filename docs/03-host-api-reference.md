@@ -1,5 +1,7 @@
 # Host API reference
 
+*[Читать на русском](ru/03-host-api-reference.md)*
+
 Every function/object here is a **global** — no `require()`, no import.
 Nothing is capability-scoped: the signature check on your file is the only
 gate. This reference matches `transport/script/host.go` and

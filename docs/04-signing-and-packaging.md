@@ -1,5 +1,7 @@
 # Signing and packaging
 
+*[Читать на русском](ru/04-signing-and-packaging.md)*
+
 The signature is the **entire** security boundary for a script transport —
 there is no other trust check, and no capability restriction inside the
 runtime. Get comfortable with this model before shipping anything: a script
