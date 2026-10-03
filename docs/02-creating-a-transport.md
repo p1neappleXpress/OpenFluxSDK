@@ -204,7 +204,47 @@ and [06-lessons-learned.md](06-lessons-learned.md) for the specific bugs
 that testing caught in the existing seven transports - several of the same
 mistakes are easy to make in a new one too.
 
-## 7. Package it (optional)
+## 7. Need the user to log in or configure something first? (setup pages)
+
+Some protocols can't just connect - the user has to sign in somewhere, pass
+a captcha, or hand over a token before `open()` has anything to work with.
+Don't try to automate a real login form from JS; ask the host app to show
+a browser instead, the same way the existing captcha flow already works:
+
+```js
+// A real site handles its own login/captcha UI - just point at it:
+raise("captchaRequired", { url: "https://real-site.example/login", reason: "login" });
+
+// No real site to point at - your own setup form, built from
+// templates/template_html.html (logo, status line, a "Готово" button
+// already wired to window.openfluxSubmit):
+raise("needsSetup", { html: mySetupPageHtml, reason: "configure" });
+```
+
+Either way, whatever the user ends up submitting comes back to **your own**
+`onEvent("cookiesApplied", values)` handler - read it with `cookieJar.get()`,
+same as a solved captcha's cookies. See
+[03-host-api-reference.md](03-host-api-reference.md#raisekind-payload-reaching-the-apps-browser-surface)
+for the full contract, including the `{client, node}`-scoped payload shape
+and its current limits.
+
+If your own page needs more than static HTML can do - its own routes, a
+`fetch()` with a real origin instead of the null origin an inline page
+gets - serve it yourself instead of just raising HTML:
+
+```js
+var server = httpserver.listen(function (req) {
+  if (req.path === "/") return { status: 200, headers: { "Content-Type": "text/html" }, body: mySetupPageHtml };
+  // ... your own routes ...
+});
+raise("needsSetup", { url: "http://" + server.addr, reason: "configure" });
+```
+
+`httpserver.listen` is always loopback-only (no host parameter exists at
+all) - see [03](03-host-api-reference.md#httpserverlistenhandler-port---port-addr-close) for the full signature, sync/async handler duality, and
+error behavior.
+
+## 8. Package it (optional)
 
 A plain `<name>.js` + `<name>.js.sig` pair works fine. If you want
 author/description/icon metadata for a UI listing, or want the whole thing

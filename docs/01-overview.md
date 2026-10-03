@@ -33,8 +33,9 @@ no app update.
                                      │ calls into
                      ┌───────────────▼───────────────────┐
                      │         host API (Go)              │
-                     │  http / ws / udp / webrtc / cookies │
-                     │  / codecs / crypto / concurrency    │
+                     │  http / httpserver / ws / udp /    │
+                     │  webrtc / cookies / codecs / crypto │
+                     │  / concurrency                     │
                      └───────────────┬───────────────────┘
                                      │ real I/O
                               the actual network
@@ -58,6 +59,14 @@ no app update.
   partially-trusted path, no "run it but restrict what it can do" — it's
   signed and it runs, or it isn't and it's refused outright. See
   [04-signing-and-packaging.md](04-signing-and-packaging.md).
+- **A transport can ask for a setup/login page, not just raw params.**
+  `raise("needsSetup"/"captchaRequired", {url|html, reason})` opens the
+  app's browser on a real site or on the script's own inline page (or one
+  it serves itself with `httpserver.listen`, loopback-only); whatever the
+  user submits comes back through the same `onEvent("cookiesApplied", ...)`
+  path a solved captcha already uses. See
+  [03-host-api-reference.md](03-host-api-reference.md) and
+  [02-creating-a-transport.md](02-creating-a-transport.md#7-need-the-user-to-log-in-or-configure-something-first-setup-pages).
 
 ## The contract your script implements
 
@@ -88,9 +97,9 @@ short and it's the actual reference, not a paraphrase of one.
 
 ## What's already shipped as a script transport
 
-As of `feature/scripted-transports`, seven transports run this way — see
-the main repo's `CHANGELOG.md` on that branch for exact verification
-status of each. If you're building something similar (a doc-collab tool,
+Seven transports run this way already — see the main repo's own branches
+(`feature/scripted-transports`, `feature/savechanges`) and their
+`CHANGELOG.md`s for exact verification status of each. If you're building something similar (a doc-collab tool,
 a WebSocket-based chat/relay protocol, anything with a browser-shaped auth
 flow), reading one of the existing ports is often faster than starting from
 the template — `mailru.js` is the shortest and simplest end-to-end example;

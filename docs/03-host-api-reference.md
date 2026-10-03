@@ -4,8 +4,12 @@
 
 Every function/object here is a **global** — no `require()`, no import.
 Nothing is capability-scoped: the signature check on your file is the only
-gate. This reference matches `transport/script/host.go` and
-`transport/script/host_webrtc.go` on `feature/scripted-transports`.
+gate. This reference matches `transport/script/host.go`,
+`transport/script/host_webrtc.go` and `transport/script/host_httpserver.go`
+in the OpenFlux core — the engine is ahead of `main` on more than one
+branch right now (`feature/scripted-transports`, `feature/savechanges`), so
+check the core repo's own branches/CHANGELOG for exactly what's merged
+where; everything documented here is real and running, not aspirational.
 
 ## HTTP
 
@@ -52,6 +56,47 @@ reference example — each gets its own session.)
 Unlike the default `cookieJar` global (below), `session.cookies.get/set`
 take the URL **explicitly** on every call — an ad-hoc session has no single
 fixed domain to default to.
+
+## HTTP server (a setup/login mini-app)
+
+### `httpserver.listen(handler, port?) -> {port, addr, close()}`
+
+```js
+var server = httpserver.listen(function (req) {
+  // req: {method, path, query, headers, body}  (body: string)
+  if (req.path === "/") {
+    return { status: 200, headers: { "Content-Type": "text/html" }, body: SETUP_PAGE_HTML };
+  }
+  return { status: 404, body: "not found" };
+});
+// server.port, server.addr ("127.0.0.1:<port>"); server.close() when done.
+```
+
+Your own HTTP server, for when a static page (see `raise("needsSetup", ...)`
+below) isn't enough — a real mini-app with its own routes, or a page that
+needs to `fetch()` against something with an actual origin instead of the
+null origin an inline/`data:` page gets. The handler may be **sync or
+async** — return a plain object, or a `Promise` that resolves to one; both
+work identically:
+
+```js
+var server = httpserver.listen(async function (req) {
+  if (req.path === "/check") {
+    var res = await http.fetch({ url: "https://example.com/api/status" });
+    return { status: 200, headers: { "Content-Type": "application/json" }, body: res.body };
+  }
+  return { status: 404, body: "not found" };
+});
+```
+
+A thrown error (sync or async) becomes a 500 with the error's message as
+the body — it does not crash the transport.
+
+**It is always loopback-only.** There is no host parameter at all —
+`listen()` binds `127.0.0.1` by construction, not by a runtime check your
+script could get wrong, so a setup server can never become reachable off
+the device it runs on. Close it (`server.close()`) once the setup flow is
+done; it isn't closed for you until the transport itself stops.
 
 ## WebSocket
 
@@ -243,8 +288,10 @@ emit(bytes)              // deliver one received application packet up.
                           // bytes: ArrayBuffer/TypedArray, zero-copy.
 setState(state, errMsg?) // state: "connecting"|"connected"|"reconnecting"|
                           //        "degraded"|"dead"
-raise(kind, payload)     // upward out-of-band event, e.g.
+raise(kind, payload)     // upward out-of-band event, any kind, e.g.
                           // raise("captchaRequired", {url: "...", location: "..."})
+onEvent(kind, payload)   // downward: the host app answering one of your
+                          // raise() calls, or "cookiesApplied" (below)
 ```
 
 `setState("connected")`/`setState(anything-else)` is the **only** way
@@ -252,3 +299,41 @@ raise(kind, payload)     // upward out-of-band event, e.g.
 this wrong (call it too early, or never call it at all) and the core will
 either think you're up when you're not, or never route traffic to you at
 all.
+
+### `raise(kind, payload)` reaching the app's browser surface
+
+Every `kind` reaches your own `onEvent` handler on whatever registered one
+(host-app-side, mirroring the cookie-exchange pattern) — that part is
+generic, no special-cased kinds. Two spellings additionally reach the
+app's actual captcha/login UI (a real browser dialog, not just a callback):
+
+```js
+raise("captchaRequired", { url: "https://real-site.example/check", reason: "smartcaptcha" });
+raise("needsSetup",      { html: SETUP_PAGE_HTML,                   reason: "login" });
+```
+
+- `captchaRequired` and `needsSetup` are treated identically on the host
+  side — pick whichever name reads better at the call site. `url` and
+  `html` are mutually exclusive: send a real site's URL to open in the
+  app's browser, or your own inline page (built from
+  [`templates/template_html.html`](../templates/template_html.html) —
+  logo, status line, a `window.openfluxSubmit(payload)` call wired to a
+  "Готово"/"Done" button) when there's no real site to point at, just your
+  own setup/login form. `reason` is free-form, shown in the UI.
+- Whichever one you send, the app loads it (navigates to the URL, or
+  renders the HTML directly — no network request for the HTML case) and
+  shows it in its normal browser dialog.
+- Getting data back is the same path either way: whatever the user ends up
+  with gets delivered to `ApplyCookies` (cookies scraped from the real
+  page, or `window.openfluxSubmit`'s payload from your own page), which
+  fires `onEvent("cookiesApplied", values)` on your script — read `values`
+  back via `cookieJar.get()` in that handler (see
+  [templates/template.js](../templates/template.js)). `ApplyCookies`
+  genuinely does not care whether `values` are real browser cookies or
+  your own config fields; this is the same mechanism every native
+  Yandex-family transport's captcha solve already used, generalized.
+- `payload` may instead be scoped as `{client: {...}, node: {...}}` when
+  the same setup page configures both a local client and a node it talks
+  to — as of this writing only the `client` half is guaranteed to reach
+  your script; treat `node` as not yet delivered anywhere until the core's
+  own docs say otherwise.

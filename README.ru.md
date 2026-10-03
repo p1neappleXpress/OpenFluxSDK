@@ -8,16 +8,17 @@
 
 ## Что такое транспорт здесь
 
-Начиная с [`feature/scripted-transports`](https://github.com/p1neappleXpress/OpenFlux/tree/feature/scripted-transports)
-(ветка ещё не влита в `main` — подробности о том, что уже проверено, а что
-нет, смотрите в `CHANGELOG.md` этой ветки), транспорт OpenFlux — это
+Ещё не влит в `main` (он опережает его сразу на нескольких feature-ветках
+основного репозитория — подробности о том, что уже проверено, а что нет,
+смотрите в `CHANGELOG.md` каждой из них), транспорт OpenFlux — это
 **подписанный JavaScript-файл**, загружаемый во время выполнения в свой
 собственный интерпретатор [goja](https://github.com/dop251/goja) (чистый
 Go, без cgo — тот же статический бинарник, та же схема кросс-компиляции,
 что и у остального ядра). Вы пишете логику авторизации, формат кадров,
 политику переподключения — всё на JS. Ядро предоставляет host API (HTTP,
-WebSocket, UDP, настоящий WebRTC PeerConnection, куки, несколько кодеков,
-примитив конкурентности) и ровно одну проверку: **проверку ed25519-подписи**.
+HTTP-сервер для собственной мини-страницы настройки/входа, WebSocket, UDP,
+настоящий WebRTC PeerConnection, куки, несколько кодеков, примитив
+конкурентности) и ровно одну проверку: **проверку ed25519-подписи**.
 Неподписанный или неправильно подписанный код никогда не запускается. Это
 вся модель безопасности — никакого дополнительного sandbox'а с
 ограничением возможностей намеренно нет, чтобы у вас было полное
@@ -59,8 +60,9 @@ bin/darwin-arm64/scripttest \
   -url "https://example.com/whatever" -duration 30s -send hello
 
 # Вариант Б: собрать из исходников основного репозитория (всегда отражает
-# актуальный host API — см. bin/README.md про этот компромисс)
-git clone --branch feature/scripted-transports https://github.com/p1neappleXpress/OpenFlux.git
+# актуальный host API — см. bin/README.md про этот компромисс и
+# docs/ru/03-host-api-reference.md про то, где какая возможность есть)
+git clone --branch feature/savechanges https://github.com/p1neappleXpress/OpenFlux.git
 cd OpenFlux
 go run ./transport/script/cmd/scriptsign genkey dev.key dev.pub
 go run ./transport/script/cmd/scriptsign sign dev.key ../OpenFluxSDK/my-transport.js
@@ -78,6 +80,11 @@ go run ./transport/script/cmd/scripttest \
 - `templates/template.js` — эталонная отправная точка (синхронизирован с
   host API; если у вас старый клон — сравните с
   `transport/script/js/template.js` в основном репозитории).
+- `templates/template_html.html` — стартовая страница настройки/входа
+  (лого, статус, кнопка, уже подключённая к `window.openfluxSubmit`) для
+  транспорта, которому нужно, чтобы пользователь что-то настроил или вошёл
+  в аккаунт перед подключением — см.
+  [docs/ru/02-creating-a-transport.md](docs/ru/02-creating-a-transport.md#7-нужно-чтобы-пользователь-вошёл-или-что-то-настроил-страницы-настройки).
 - `examples/echo-transport.js` — минимально возможный рабочий транспорт,
   чтобы понять контракт без шума реального протокола.
 - `bin/` — готовые бинарники `scriptsign`/`scripttest`/`scriptbundle` для
@@ -86,9 +93,11 @@ go run ./transport/script/cmd/scripttest \
 
 ## Статус
 
-Этот SDK описывает `feature/scripted-transports` — ветку основного
-репозитория, **ещё не влитую в `main`**. Рантайм и host API реальны и
-протестированы на живой инфраструктуре (см. `CHANGELOG.md` основного
-репозитория на этой ветке), но воспринимайте всё здесь как рабочую
-предварительную версию, а не стабильный версионированный API. Всё это
-будет меняться, и SDK будет следовать за изменениями.
+Этот SDK описывает движок скрипт-транспортов в том виде, в каком он живёт
+на собственных feature-ветках основного репозитория — **ещё не влитых в
+`main`**, причём сразу на нескольких (`feature/scripted-transports`,
+`feature/savechanges`), а не на одной. Рантайм и host API реальны и
+протестированы на живой инфраструктуре (см. `CHANGELOG.md` каждой из
+веток), но воспринимайте всё здесь как рабочую предварительную версию, а
+не стабильный версионированный API. Ветки будут объединены, и SDK
+последует за этим.

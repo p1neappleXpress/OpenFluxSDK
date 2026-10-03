@@ -8,18 +8,19 @@ the app.
 
 ## What a transport actually is here
 
-Since [`feature/scripted-transports`](https://github.com/p1neappleXpress/OpenFlux/tree/feature/scripted-transports)
-(not yet merged into `main` — see that branch's `CHANGELOG.md` for exactly
-what's proven vs. still open), an OpenFlux transport is **a signed
-JavaScript file**, loaded at runtime into its own [goja](https://github.com/dop251/goja)
+Not yet merged into `main` (it's ahead on a couple of the core repo's own
+feature branches — see their `CHANGELOG.md`s for exactly what's proven vs.
+still open on each), an OpenFlux transport is **a signed JavaScript file**,
+loaded at runtime into its own [goja](https://github.com/dop251/goja)
 interpreter (pure Go, no cgo — same static binary, same cross-compile
 story as the rest of the core). You write the auth flow, the wire framing,
-the reconnect policy — all in JS. The core supplies a host API (HTTP,
-WebSocket, UDP, a real WebRTC PeerConnection, cookies, a few codecs, a
-concurrency primitive) and exactly one gate: **an ed25519 signature check**.
-Unsigned or wrongly-signed code never runs. That's the entire security
-model — there is no capability sandbox beyond it, deliberately, so you have
-full room to implement whatever a real transport needs.
+the reconnect policy — all in JS. The core supplies a host API (HTTP, an
+HTTP server for your own setup/login mini-app, WebSocket, UDP, a real
+WebRTC PeerConnection, cookies, a few codecs, a concurrency primitive) and
+exactly one gate: **an ed25519 signature check**. Unsigned or
+wrongly-signed code never runs. That's the entire security model — there is
+no capability sandbox beyond it, deliberately, so you have full room to
+implement whatever a real transport needs.
 
 ## Start here
 
@@ -56,8 +57,9 @@ bin/darwin-arm64/scripttest \
   -url "https://example.com/whatever" -duration 30s -send hello
 
 # Option B: build from source against the main repo instead (always
-# reflects the latest host API — see bin/README.md for the tradeoff)
-git clone --branch feature/scripted-transports https://github.com/p1neappleXpress/OpenFlux.git
+# reflects the latest host API — see bin/README.md for the tradeoff, and
+# docs/03-host-api-reference.md for which branch has which capability)
+git clone --branch feature/savechanges https://github.com/p1neappleXpress/OpenFlux.git
 cd OpenFlux
 go run ./transport/script/cmd/scriptsign genkey dev.key dev.pub
 go run ./transport/script/cmd/scriptsign sign dev.key ../OpenFluxSDK/my-transport.js
@@ -75,6 +77,10 @@ run end to end before porting a real protocol.
 - `templates/template.js` — the canonical starting point (kept in sync with
   the host API — if you're reading an older clone, diff it against
   `transport/script/js/template.js` in the main repo).
+- `templates/template_html.html` — a starter setup/login mini-app page (logo,
+  status line, a `window.openfluxSubmit`-wired button) for a transport that
+  needs the user to configure or log in to something before it can connect
+  — see [docs/02-creating-a-transport.md](docs/02-creating-a-transport.md#7-need-the-user-to-log-in-or-configure-something-first-setup-pages).
 - `examples/echo-transport.js` — the smallest possible working transport,
   for understanding the contract without any real-world protocol noise.
 - `bin/` — prebuilt `scriptsign`/`scripttest`/`scriptbundle` binaries for
@@ -83,8 +89,11 @@ run end to end before porting a real protocol.
 
 ## Status
 
-This SDK documents `feature/scripted-transports`, a branch of the main
-repo — **not yet merged into `main`**. The runtime and host API are real
-and tested against live infrastructure (see the main repo's `CHANGELOG.md`
-on that branch), but treat everything here as a working preview, not a
-stable, versioned API yet. It will move and this SDK will follow it.
+This SDK documents the script-transport engine as it exists on the main
+repo's own feature branches — **not yet merged into `main`**, and moving
+across more than one of them at once (`feature/scripted-transports`,
+`feature/savechanges`) rather than a single tidy line. The runtime and
+host API are real and tested against live infrastructure (see each
+branch's own `CHANGELOG.md`), but treat everything here as a working
+preview, not a stable, versioned API yet. It will consolidate and this SDK
+will follow it.
