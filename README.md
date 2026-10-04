@@ -8,9 +8,9 @@ the app.
 
 ## What a transport actually is here
 
-Not yet merged into `main` (it's ahead on a couple of the core repo's own
-feature branches — see their `CHANGELOG.md`s for exactly what's proven vs.
-still open on each), an OpenFlux transport is **a signed JavaScript file**,
+In the OpenFlux **nightly** channel (the apps' nightly builds; not yet in a
+stable release — see [Status](#status)), an OpenFlux transport is **a signed
+JavaScript file** (or a signed `.flux` package),
 loaded at runtime into its own [goja](https://github.com/dop251/goja)
 interpreter (pure Go, no cgo — same static binary, same cross-compile
 story as the rest of the core). You write the auth flow, the wire framing,
@@ -39,6 +39,11 @@ implement whatever a real transport needs.
    found while building this, and the non-obvious goja/runtime behaviors
    that caused them. Read this before you spend an hour debugging something
    already documented here.
+7. **[docs/07-settings-and-setup-pages.md](docs/07-settings-and-setup-pages.md)**
+   — let the user tune your transport (declare settings once, the app builds the
+   **Настройки** wizard) and ask for a page when it cannot connect until the
+   user does something (a login, a pairing): `raise()`, `httpserver.listen()`,
+   `window.openfluxSubmit`, and how to try all of it with `scripttest`, no app.
 
 ## Quickstart
 
@@ -57,9 +62,8 @@ bin/darwin-arm64/scripttest \
   -url "https://example.com/whatever" -duration 30s -send hello
 
 # Option B: build from source against the main repo instead (always
-# reflects the latest host API — see bin/README.md for the tradeoff, and
-# docs/03-host-api-reference.md for which branch has which capability)
-git clone --branch feature/savechanges https://github.com/p1neappleXpress/OpenFlux.git
+# reflects the latest host API — see bin/README.md for the tradeoff)
+git clone --branch nightly https://github.com/p1neappleXpress/OpenFlux.git
 cd OpenFlux
 go run ./transport/script/cmd/scriptsign genkey dev.key dev.pub
 go run ./transport/script/cmd/scriptsign sign dev.key ../OpenFluxSDK/my-transport.js
@@ -83,17 +87,19 @@ run end to end before porting a real protocol.
   — see [docs/02-creating-a-transport.md](docs/02-creating-a-transport.md#7-need-the-user-to-log-in-or-configure-something-first-setup-pages).
 - `examples/echo-transport.js` — the smallest possible working transport,
   for understanding the contract without any real-world protocol noise.
+- `examples/settings-demo.js` — the same, with settings declared in
+  `info().params` (every field type) that the app turns into a wizard.
+- `examples/setup-own-server.js` — a transport that pairs an account through a
+  page of its own, served by the script itself (`httpserver.listen`).
 - `bin/` — prebuilt `scriptsign`/`scripttest`/`scriptbundle` binaries for
   macOS/Linux/Windows, so you don't need to clone the main repo just to sign
   or test a script. See [bin/README.md](bin/README.md).
 
 ## Status
 
-This SDK documents the script-transport engine as it exists on the main
-repo's own feature branches — **not yet merged into `main`**, and moving
-across more than one of them at once (`feature/scripted-transports`,
-`feature/savechanges`) rather than a single tidy line. The runtime and
-host API are real and tested against live infrastructure (see each
-branch's own `CHANGELOG.md`), but treat everything here as a working
-preview, not a stable, versioned API yet. It will consolidate and this SDK
-will follow it.
+The script-transport engine ships in OpenFlux's **nightly** channel (the apps'
+nightly builds and the core's `nightly` branch); it is not in a stable release
+yet. The runtime and host API are real and tested against live infrastructure and
+against the real apps, but until it reaches a stable release treat details as a
+working preview: check the core's `CHANGELOG.md` when you update. This SDK
+follows the nightly core, and its prebuilt tools in `bin/` are built from it.

@@ -2,7 +2,7 @@
 
 Cross-compiled `scriptsign`, `scripttest`, and `scriptbundle` (from the main
 repo's `transport/script/cmd/`), built from
-[`feature/scripted-transports`](https://github.com/p1neappleXpress/OpenFlux/tree/feature/scripted-transports)
+the core's [`nightly`](https://github.com/p1neappleXpress/OpenFlux/tree/nightly) branch
 with `CGO_ENABLED=0` — no runtime dependency beyond what's in the archive
 you download.
 
@@ -26,6 +26,10 @@ it outside of `git clone` (e.g. from a browser):
 ```bash
 chmod +x scriptsign
 ```
+
+`scripttest` has `-settings`, `-open`, `-submit` and `-lang` (see
+[docs/07-settings-and-setup-pages.md](../docs/07-settings-and-setup-pages.md));
+the binaries here are built from the same code as the guide describes.
 
 These are a convenience for people who don't want to clone and build the
 whole main repo just to sign or test a script. If you're actively developing

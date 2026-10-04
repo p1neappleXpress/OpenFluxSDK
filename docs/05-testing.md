@@ -72,6 +72,44 @@ bug this exact scenario caught).
 **Never commit a cookies file with real session data.** Treat it like any
 other credential.
 
+## Setup pages and the settings wizard, without an app
+
+`scripttest` plays the app's part for the two things that need a page (the full
+guide is [07-settings-and-setup-pages.md](07-settings-and-setup-pages.md)).
+
+**The settings wizard** - what the user gets under "Настройки" - opens without
+starting the transport:
+
+```bash
+scripttest -script my-transport.js -pubkey <hex> -settings -open \
+  -param "region=us"          # prefill, as if the user had saved it before
+```
+
+It prints the page address (`-open` opens it in your browser), `WARN` lines for
+anything wrong in your `info().params`, and, when you press Save, exactly what
+your script would receive as `cfg.params` (defaults filled in, types checked).
+It stops after the first valid Save or `-duration`. `-lang ru|en` picks the words
+the generated page adds.
+
+**A setup page raised while the transport runs** is served on `127.0.0.1` with
+`window.openfluxSubmit` in it, its address printed (`-open` shows it), and what
+the page submits reaches your `onEvent("cookiesApplied")`:
+
+```bash
+scripttest -script setup-own-server.js -pubkey <hex> -url "wss://..." -open -duration 120s
+```
+
+`-submit '{"token":"abc"}'` answers the first setup page itself, so a script can
+be exercised end to end with nobody there (CI):
+
+```bash
+scripttest -script setup-own-server.js -pubkey <hex> -url "wss://..." \
+  -submit '{"token":"tok-1234"}' -duration 10s
+```
+
+A real site's check (`url: "https://..."`) cannot be completed from a command
+line: open it, sign in, and pass the cookies with `-cookies-file` (above).
+
 ## Load testing
 
 ```bash

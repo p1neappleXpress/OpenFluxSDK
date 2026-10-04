@@ -204,45 +204,44 @@ and [06-lessons-learned.md](06-lessons-learned.md) for the specific bugs
 that testing caught in the existing seven transports - several of the same
 mistakes are easy to make in a new one too.
 
-## 7. Need the user to log in or configure something first? (setup pages)
+## 7. Settings, and logins that need a page
 
-Some protocols can't just connect - the user has to sign in somewhere, pass
-a captcha, or hand over a token before `open()` has anything to work with.
-Don't try to automate a real login form from JS; ask the host app to show
-a browser instead, the same way the existing captcha flow already works:
+Two separate needs, two tools - the full guide is
+[07-settings-and-setup-pages.md](07-settings-and-setup-pages.md).
+
+**The user should be able to tune things** (a token, a region, a retry count):
+declare them in `info().params`. The app builds the **Настройки** wizard from your
+declaration, no HTML to write, and the values arrive as `cfg.params`:
 
 ```js
-// A real site handles its own login/captcha UI - just point at it:
+params: [
+  { key: "url",     label: "Document link", type: "url", required: true },             // the profile's field -> cfg.url
+  { key: "token",   label: "API token",     type: "secret", required: true },          // a setting -> cfg.params.token
+  { key: "retries", label: "Retries",       type: "number", default: 3, min: 1, max: 10 },
+],
+```
+
+**The transport cannot work until something happens in a browser** (sign in, pass
+a captcha, pair an account): don't automate a login form from JS; ask the app to
+show a page:
+
+```js
+// A real site handles its own login/captcha UI:
 raise("captchaRequired", { url: "https://real-site.example/login", reason: "login" });
 
-// No real site to point at - your own setup form, built from
-// templates/template_html.html (logo, status line, a "Готово" button
-// already wired to window.openfluxSubmit):
-raise("needsSetup", { html: mySetupPageHtml, reason: "configure" });
+// Your own page, inline:
+raise("needsSetup", { html: mySetupPageHtml, reason: "Pair your account" });
+
+// Your own page, served by you (own routes, a real origin for fetch()):
+var server = httpserver.listen(function (req) { /* ... */ });
+raise("needsSetup", { url: "http://" + server.addr + "/", reason: "Pair your account" });
 ```
 
-Either way, whatever the user ends up submitting comes back to **your own**
-`onEvent("cookiesApplied", values)` handler - read it with `cookieJar.get()`,
-same as a solved captcha's cookies. See
-[03-host-api-reference.md](03-host-api-reference.md#raisekind-payload-reaching-the-apps-browser-surface)
-for the full contract, including the `{client, node}`-scoped payload shape
-and its current limits.
-
-If your own page needs more than static HTML can do - its own routes, a
-`fetch()` with a real origin instead of the null origin an inline page
-gets - serve it yourself instead of just raising HTML:
-
-```js
-var server = httpserver.listen(function (req) {
-  if (req.path === "/") return { status: 200, headers: { "Content-Type": "text/html" }, body: mySetupPageHtml };
-  // ... your own routes ...
-});
-raise("needsSetup", { url: "http://" + server.addr, reason: "configure" });
-```
-
-`httpserver.listen` is always loopback-only (no host parameter exists at
-all) - see [03](03-host-api-reference.md#httpserverlistenhandler-port---port-addr-close) for the full signature, sync/async handler duality, and
-error behavior.
+Whatever the user submits (the page calls `window.openfluxSubmit({...})`) comes
+back to your `onEvent("cookiesApplied")`; read it with `cookieJar.get()`. The core
+checks what you raise and throws a `TypeError` for a page it will not pass on, so
+you find mistakes while writing. `examples/setup-own-server.js` is a complete
+working one.
 
 ## 8. Package it (optional)
 

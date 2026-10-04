@@ -97,9 +97,10 @@ short and it's the actual reference, not a paraphrase of one.
 
 ## What's already shipped as a script transport
 
-Seven transports run this way already — see the main repo's own branches
-(`feature/scripted-transports`, `feature/savechanges`) and their
-`CHANGELOG.md`s for exact verification status of each. If you're building something similar (a doc-collab tool,
+Seven transports run this way already, in the core's `transport/script/js/`
+(and as signed `.flux` releases in
+[OpenFluxTransports](https://github.com/p1neappleXpress/OpenFluxTransports)).
+If you're building something similar (a doc-collab tool,
 a WebSocket-based chat/relay protocol, anything with a browser-shaped auth
 flow), reading one of the existing ports is often faster than starting from
 the template — `mailru.js` is the shortest and simplest end-to-end example;
@@ -109,4 +110,6 @@ the template — `mailru.js` is the shortest and simplest end-to-end example;
 
 ## Next
 
-[02-creating-a-transport.md](02-creating-a-transport.md) — write one.
+[02-creating-a-transport.md](02-creating-a-transport.md) — write one. When it
+needs the user to tune something or to log in, see
+[07-settings-and-setup-pages.md](07-settings-and-setup-pages.md).

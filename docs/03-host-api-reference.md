@@ -6,10 +6,9 @@ Every function/object here is a **global** — no `require()`, no import.
 Nothing is capability-scoped: the signature check on your file is the only
 gate. This reference matches `transport/script/host.go`,
 `transport/script/host_webrtc.go` and `transport/script/host_httpserver.go`
-in the OpenFlux core — the engine is ahead of `main` on more than one
-branch right now (`feature/scripted-transports`, `feature/savechanges`), so
-check the core repo's own branches/CHANGELOG for exactly what's merged
-where; everything documented here is real and running, not aspirational.
+in the OpenFlux core (its `nightly` branch; see the core's `CHANGELOG.md` for
+what has reached a stable release); everything documented here is real and
+running, not aspirational.
 
 ## HTTP
 
@@ -63,7 +62,7 @@ fixed domain to default to.
 
 ```js
 var server = httpserver.listen(function (req) {
-  // req: {method, path, query, headers, body}  (body: string)
+  // req: {method, path, query, headers, body}  (body: ArrayBuffer; text.decode(req.body) for a string)
   if (req.path === "/") {
     return { status: 200, headers: { "Content-Type": "text/html" }, body: SETUP_PAGE_HTML };
   }
@@ -303,37 +302,35 @@ all.
 ### `raise(kind, payload)` reaching the app's browser surface
 
 Every `kind` reaches your own `onEvent` handler on whatever registered one
-(host-app-side, mirroring the cookie-exchange pattern) — that part is
+(host-app-side, mirroring the cookie-exchange pattern) - that part is
 generic, no special-cased kinds. Two spellings additionally reach the
 app's actual captcha/login UI (a real browser dialog, not just a callback):
 
 ```js
 raise("captchaRequired", { url: "https://real-site.example/check", reason: "smartcaptcha" });
-raise("needsSetup",      { html: SETUP_PAGE_HTML,                   reason: "login" });
+raise("needsSetup",      { html: SETUP_PAGE_HTML,                   reason: "Pair your account" });
+raise("needsSetup",      { url: "http://" + server.addr + "/",       reason: "Pair your account" });
 ```
 
-- `captchaRequired` and `needsSetup` are treated identically on the host
-  side — pick whichever name reads better at the call site. `url` and
-  `html` are mutually exclusive: send a real site's URL to open in the
-  app's browser, or your own inline page (built from
-  [`templates/template_html.html`](../templates/template_html.html) —
-  logo, status line, a `window.openfluxSubmit(payload)` call wired to a
-  "Готово"/"Done" button) when there's no real site to point at, just your
-  own setup/login form. `reason` is free-form, shown in the UI.
-- Whichever one you send, the app loads it (navigates to the URL, or
-  renders the HTML directly — no network request for the HTML case) and
-  shows it in its normal browser dialog.
-- Getting data back is the same path either way: whatever the user ends up
-  with gets delivered to `ApplyCookies` (cookies scraped from the real
-  page, or `window.openfluxSubmit`'s payload from your own page), which
-  fires `onEvent("cookiesApplied", values)` on your script — read `values`
-  back via `cookieJar.get()` in that handler (see
-  [templates/template.js](../templates/template.js)). `ApplyCookies`
-  genuinely does not care whether `values` are real browser cookies or
-  your own config fields; this is the same mechanism every native
-  Yandex-family transport's captcha solve already used, generalized.
-- `payload` may instead be scoped as `{client: {...}, node: {...}}` when
-  the same setup page configures both a local client and a node it talks
-  to — as of this writing only the `client` half is guaranteed to reach
-  your script; treat `node` as not yet delivered anywhere until the core's
-  own docs say otherwise.
+- `captchaRequired` and `needsSetup` are treated identically - pick whichever
+  name reads better at the call site. Pass **either** `url` **or** `html`.
+- A **page of your own** is either inline `html`, or an `http://127.0.0.1:<port>`
+  address of a server **you** started with `httpserver.listen()`. The app shows it
+  as it is, gives it `window.openfluxSubmit` and does not collect cookies from
+  it; `reason` becomes the dialog's title. A **real site** is an `https://` URL:
+  the app collects its cookies.
+- **The core checks the payload and throws a `TypeError` into your script** for
+  anything else: another `http://` address, a loopback port that is not yours (or
+  that you closed), `file:`, `javascript:`, `data:`, `html` together with `url`,
+  a page over 512 KiB. `reason` is clipped to 200 characters.
+- Getting data back is the same path every time: the user's answer is delivered
+  to `ApplyCookies` (cookies scraped from a real page, or the payload of
+  `window.openfluxSubmit`), which fires `onEvent("cookiesApplied", values)` on
+  your script - read `values` back with `cookieJar.get()` in that handler (see
+  [templates/template.js](../templates/template.js)). It does not matter whether
+  `values` are real cookies or your own fields.
+- `window.openfluxSubmit(payload)` takes a flat object or
+  `{client: {...}, node: {...}}` (only `client` is delivered), values become
+  strings (null, objects and arrays are dropped), and at least one value must
+  remain. See [07](07-settings-and-setup-pages.md#5-windowopenfluxsubmit) for when
+  it exists on the page and how it stays with your page's own address.

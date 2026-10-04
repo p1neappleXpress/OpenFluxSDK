@@ -8,42 +8,44 @@
   contract for Transport.{info,open,write,close,onEvent}; this one is the
   contract for the page itself.
 
-  STATUS: wired end to end, core and app. ScriptTransport implements
-  transport.ErrorNotifier (transport/script/transport.go); hostRaise routes
-  raise("needsSetup"/"captchaRequired", {html|url, reason}) to it exactly
-  like the native yandex/mailru captcha signal, so manager.go's existing
-  automatic wiring (Add(), matching on the interface - no script-specific
-  code there at all) picks it up. The flow:
+  STATUS: wired end to end, core and both apps. The flow:
 
     1. The script calls raise("needsSetup", { html: "<this file's content
-       with its own values filled in>" }) - or {url: "..."} for a page it
-       doesn't control (a real site) or one the script serves ITSELF over
-       httpserver.listen() for anything this static page can't do (own
-       routes, fetch() with a real origin - see host_httpserver.go).
-    2. The core forwards it to the app: IPC on a client
-       (ipc.CookiesRequestPayload.HTML), the Session control channel on an
-       exit (control.AuthRequiredPayload.HTML, via the existing
-       remote-auth-proxy if it was a URL instead).
-    3. The app's browser surface (BrowserPage - JCEF on desktop via
-       BuiltInBrowser.openHtml, WebView on Android via WebPage's html
-       constructor param) loads HTML directly instead of a URL, and injects
-       window.openfluxSubmit so this page's "Готово" button can hand data
-       back. Submitting is this page's job, not the surrounding dialog's -
-       there is no separate "Готово" button in the app's own chrome for a
-       setup page, unlike a real captcha check.
-    4. That data is delivered to the script the same way a solved
-       captcha's cookies always have been: ApplyCookies (ScriptTransport
-       already implements it) writes it into the jar and fires
-       onEvent("cookiesApplied") - the script reads it back via
-       cookieJar.get() in that handler (see ../template.js). Nothing about
-       ApplyCookies cares whether the values are real browser cookies or
-       a script's own config.
+       with its own values filled in>", reason: "<short title>" }), or
+       {url: "http://127.0.0.1:<port>/"} for a page the script serves ITSELF
+       over httpserver.listen() (own routes, fetch() with a real origin), or
+       {url: "https://..."} for a real site. The core CHECKS the payload and
+       throws a TypeError into the script for anything else (see
+       transport/script/setuppage.go): only https, inline html, or the
+       loopback port of a server this script started.
+    2. The core marks a page that is the script's own (html, or its loopback
+       server) as "own" and forwards it to the app: IPC on a client
+       (ipc.CookiesRequestPayload, with Own), the Session control channel on
+       an exit (inline html only; an exit's loopback address means nothing on
+       the client and is dropped).
+    3. The app's browser (BuiltInBrowser.openHtml / openOwn on desktop, WebPage
+       on Android) shows it and defines window.openfluxSubmit: before the
+       page's own scripts for inline html, once the page has loaded for a
+       page from the script's own server (then the "openflux-ready" event
+       fires). The function belongs to the page's own address: another origin
+       cannot use it. The dialog's title is the script's `reason`; a setup page
+       has no "Готово" of the app's own - submitting is this page's job.
+    4. The data is delivered to the script the same way a solved captcha's
+       cookies always have been: ApplyCookies writes it into the jar and fires
+       onEvent("cookiesApplied") - the script reads it back via cookieJar.get()
+       (see ../template.js).
 
   payload may be flat ({key: value, ...}) or scoped ({client: {...}, node:
-  {...}} - see the node-config-scope design); only the client half reaches
-  the script today on both apps - node-scoped delivery during a node deploy
-  is separate, unbuilt work, so don't rely on payload.node reaching anyone
-  yet.
+  {...}}); only the client half is delivered today. Values arrive as strings
+  (numbers and booleans become their text; null, objects and arrays are
+  dropped; at least one value is required).
+
+  A SETTINGS page of your own (Transport.settings(values), see template.js) is
+  the same kind of page, shown from the "Настройки" button; most scripts just
+  declare info().params and get a generated one.
+
+  Try it without an app: scripttest serves a raised page on 127.0.0.1 with
+  window.openfluxSubmit in it (-open shows it, -submit answers it).
 
   window.openfluxSubmit is injected by the app; it is undefined when this
   file is opened in an ordinary browser (e.g. while designing the page),

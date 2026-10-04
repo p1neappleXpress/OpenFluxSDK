@@ -53,12 +53,39 @@ var Transport = {
       httpMaxIdleConns: 0,
       httpIdleConnTimeoutMs: 0,
 
-      // What this transport needs from the operator before open() can
-      // work. Purely declarative - the manager/CLI/UI use this to build a
-      // form; open()'s cfg.params is whatever they collected, keyed by
-      // `key` below.
+      // What this transport asks the user for, and what it lets them tune.
+      // Purely declaration: the apps build their forms from it (the profile
+      // editor, and the "Настройки" wizard page generated for you - no HTML to
+      // write), and open()'s cfg gets the values back, ALWAYS AS STRINGS.
+      //
+      // The FIRST param is the profile's one input and arrives as cfg.url.
+      // Every other param is a setting: asked for in the wizard, delivered in
+      // cfg.params (declared defaults filled in for what the user never set).
+      // Say it outright with scope: "profile" | "settings".
+      //
+      //   key          required, unique
+      //   label        what the user sees
+      //   type         "text" (default) | "url" | "secret" | "number" |
+      //                "boolean" | "select" | "textarea"
+      //   required     the wizard will not save it empty
+      //   default      string | number | boolean
+      //   description  help text under the field
+      //   placeholder  grey hint in the field
+      //   options      select choices: ["a", "b"] or [{value, label}]
+      //   min, max     bounds of a number
+      //   pattern      regexp for text/url (JS RegExp in the page, RE2 in the core)
+      //   group        section heading
+      //   advanced     fold it under "Дополнительно"
+      //
+      // A boolean arrives as "true"/"false", a number as "7". scripttest -settings
+      // opens the wizard for you; docs/07-settings-and-setup-pages.md (SDK) has
+      // the whole story.
       params: [
         { key: "url", label: "Board URL", type: "url", required: true },
+        // { key: "token", label: "API token", type: "secret", required: true, group: "Account" },
+        // { key: "retries", label: "Retries", type: "number", default: 3, min: 1, max: 10 },
+        // { key: "compress", label: "Compress", type: "boolean", default: false },
+        // { key: "region", label: "Region", type: "select", options: ["eu", "us"], default: "eu", advanced: true },
       ],
     };
   },
@@ -118,6 +145,16 @@ var Transport = {
   close: function () {
     // if (this._sock) this._sock.close();
   },
+
+  // settings(values) -> optional. A settings page of your own, instead of the
+  // wizard generated from info().params: return an HTML string (or {html}).
+  // It runs like info() does (no network, no sockets, three seconds,
+  // synchronous) because the apps call it before anything about the script is
+  // connected; the page itself may call out from the browser. values = the
+  // current settings, strings, defaults filled in. The page hands the new
+  // values back with window.openfluxSubmit({...}); only the keys you declare
+  // in info().params are kept. See js/template_html.html for the page contract.
+  // settings: function (values) { return "<!doctype html>..."; },
 
   // onEvent(kind, payload) -> optional. Downward OOB delivery: the host
   // application calls this (via ScriptTransport.Deliver on the Go side)
@@ -195,6 +232,22 @@ var Transport = {
 //   ICE/DTLS/SCTP are native (pion/webrtc) - genuinely can't be JS. Everything
 //   ABOVE this (signaling, when to offer/answer, retry policy) is yours.
 //
+// -- HTTP server (a setup/login mini-app) --
+//
+// httpserver.listen(handler, port?) -> Server { port, addr, close() }
+//   A real HTTP server, 127.0.0.1 only - there is no host argument, by
+//   design: everything else here dials out, this is the one primitive
+//   that can be reached by another local process, not just sites this
+//   script talks to. port 0/omitted picks a free one.
+//   handler(req) -> response | Promise<response>, req = {method, path,
+//   query: {...}, headers: {...}, body (ArrayBuffer)}, response =
+//   {status, headers: {...}, body (string or ArrayBuffer)}. Returning a
+//   Promise (an async handler) works exactly like a sync return - use it
+//   for a route that itself calls http.fetch before answering.
+//   Point the operator at it with raise("needsSetup", {url: "http://" +
+//   srv.addr + "/"}) - see js/template_html.html for the simpler static
+//   alternative (no server) when a single page is all a script needs.
+//
 // -- Cookies --
 //
 // cookieJar.get() -> {name: value, ...}      (against info().cookieDomain)
@@ -244,3 +297,13 @@ var Transport = {
 //                                "degraded"|"dead"
 // raise(kind, payload)        - upward OOB event, e.g.
 //                                raise("captchaRequired", {url: "..."})
+//                                "captchaRequired" and "needsSetup" also
+//                                reach the app's browser surface with
+//                                payload.url or payload.html (see
+//                                js/template_html.html) and payload.reason
+//                                - raised reactively mid-session or
+//                                proactively from open() ("nothing is
+//                                configured yet"), the two read differently
+//                                but do exactly the same thing. Every other
+//                                kind only reaches onEvent's caller (the
+//                                app's own event log, scripttest, ...).

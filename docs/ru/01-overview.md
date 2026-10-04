@@ -103,9 +103,9 @@ var Transport = {
 
 ## Что уже выпущено как скриптовый транспорт
 
-Семь транспортов уже работают именно так — точный статус проверки каждого
-смотрите в собственных ветках основного репозитория
-(`feature/scripted-transports`, `feature/savechanges`) и их `CHANGELOG.md`.
+Семь транспортов уже работают именно так: они лежат в `transport/script/js/`
+ядра (и выходят подписанными `.flux`-релизами в
+[OpenFluxTransports](https://github.com/p1neappleXpress/OpenFluxTransports)).
 Если вы делаете что-то похожее (инструмент
 совместной работы с документами, протокол чата/relay на WebSocket, что-то
 с браузероподобным флоу авторизации), чтение одного из существующих портов
@@ -117,4 +117,6 @@ var Transport = {
 
 ## Далее
 
-[02-creating-a-transport.md](02-creating-a-transport.md) — написать один.
+[02-creating-a-transport.md](02-creating-a-transport.md) — написать свой. Когда
+пользователю нужно что-то менять или войти, см.
+[07-settings-and-setup-pages.md](07-settings-and-setup-pages.md).
