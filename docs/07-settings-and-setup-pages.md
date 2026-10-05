@@ -68,8 +68,12 @@ scripttest -script my-transport.js -pubkey "$(cat dev.pub)" -settings -open
 ### The profile's field and the settings
 
 A profile has one value field next to the transport picker. That field is your
-**first** param, and its value arrives as `cfg.url`. Every other param is a
-**setting**: it is asked for in the wizard and arrives in `cfg.params`.
+**first** param, and its value arrives as `cfg.url` **and** as
+`cfg.params[key]` under its own key - the wizard asks for it too, right there
+next to your other params, prefilled with whatever the profile field currently
+holds. Edit it in the profile field or in the wizard, it is the one value
+either way: an app may offer just the quick field, just the wizard, or both.
+Every other param is a **setting**: it only shows in the wizard.
 
 If your transport has no per-profile input at all (everything is a setting), say
 so with `scope`:
@@ -82,7 +86,19 @@ params: [
 
 `scope` is `"profile"` or `"settings"`. Set `"profile"` on a later param to make
 that one the profile's field instead of the first. One param can be the
-profile's; a second `"profile"` becomes a setting.
+profile's; a second `"profile"` becomes a setting. A transport with only one
+param (the profile's) still gets a wizard now - just that one field - so it
+never has to be a quick-field-only transport.
+
+Read it either way in code; both always agree:
+
+```js
+open: function (cfg) {
+  var token = cfg.params.token; // a setting, by key
+  var board = cfg.url;          // the profile param, the old way
+  var sameBoard = cfg.params.url; // the profile param, by key - works too
+}
+```
 
 ### The fields of a param
 
@@ -376,12 +392,14 @@ can be exercised in CI with nobody there.
 
 ### In the app
 
-Import the signed script, open **Транспорты**, tap **Настройки**. For a run-time
-page, use a profile with your transport and connect. The settings are in the
-app's script registry next to the script (a plain JSON file on the device, like
-the cookie store: do not rely on it to keep a secret). The Desktop app passes
-them to the core as a single encoded line, because a `.conf` value ends at `#`
-and `;`, which a setting may contain; you never see that.
+Add your transport to a profile, then open its **Настройки** right there (next
+to the quick field, if it has one - both edit the same value). For a run-time
+page, connect that profile. What is saved belongs to that profile/carrier, not
+to the installed script: two profiles using the same script keep their own
+values (a plain JSON file on the device, like the cookie store: do not rely on
+it to keep a secret). The Desktop app passes them to the core as a single
+encoded line, because a `.conf` value ends at `#` and `;`, which a setting may
+contain; you never see that.
 
 ---
 
