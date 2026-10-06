@@ -2,7 +2,7 @@
 
 Cross-compiled `scriptsign`, `scripttest`, and `scriptbundle` (from the main
 repo's `transport/script/cmd/`), built from
-the core's [`nightly`](https://github.com/p1neappleXpress/OpenFlux/tree/nightly) branch
+the core's [`nightly`](https://github.com/p1neappleXpress/OpenFlux/tree/nightly) line (the one 0.4.0 was cut from)
 with `CGO_ENABLED=0` — no runtime dependency beyond what's in the archive
 you download.
 

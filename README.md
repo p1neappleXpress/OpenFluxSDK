@@ -8,8 +8,9 @@ the app.
 
 ## What a transport actually is here
 
-In the OpenFlux **nightly** channel (the apps' nightly builds; not yet in a
-stable release — see [Status](#status)), an OpenFlux transport is **a signed
+Since core **0.4.0** and the apps' **2.3.0** (the apps keep it behind
+Settings → "Экспериментальные функции", off by default — see
+[Status](#status)), an OpenFlux transport can be **a signed
 JavaScript file** (or a signed `.flux` package),
 loaded at runtime into its own [goja](https://github.com/dop251/goja)
 interpreter (pure Go, no cgo — same static binary, same cross-compile
@@ -97,9 +98,13 @@ run end to end before porting a real protocol.
 
 ## Status
 
-The script-transport engine ships in OpenFlux's **nightly** channel (the apps'
-nightly builds and the core's `nightly` branch); it is not in a stable release
-yet. The runtime and host API are real and tested against live infrastructure and
-against the real apps, but until it reaches a stable release treat details as a
-working preview: check the core's `CHANGELOG.md` when you update. This SDK
-follows the nightly core, and its prebuilt tools in `bin/` are built from it.
+The script-transport engine is in the OpenFlux core since **0.4.0**, and in the
+desktop and Android apps since **2.3.0**. The apps ship it switched **off**: the
+"Транспорты" tab and everything JS appear only after Settings →
+"Экспериментальные функции" is turned on (a profile with a JS transport refuses to
+connect while it is off). The runtime and host API are real and tested against
+live infrastructure and against the real apps, but the feature is still
+flagged experimental, so treat details as subject to change and check the
+core's `CHANGELOG.md` when you update. The nightly channel (the core's `nightly`
+branch and the apps' nightly builds) carries what comes next; the prebuilt tools
+in `bin/` are built from that line.

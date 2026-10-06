@@ -6,8 +6,8 @@ Every function/object here is a **global** — no `require()`, no import.
 Nothing is capability-scoped: the signature check on your file is the only
 gate. This reference matches `transport/script/host.go`,
 `transport/script/host_webrtc.go` and `transport/script/host_httpserver.go`
-in the OpenFlux core (its `nightly` branch; see the core's `CHANGELOG.md` for
-what has reached a stable release); everything documented here is real and
+in the OpenFlux core (released in 0.4.0; its `nightly` branch carries what comes
+next — see the core's `CHANGELOG.md`); everything documented here is real and
 running, not aspirational.
 
 ## HTTP
